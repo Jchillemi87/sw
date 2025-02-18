@@ -5,7 +5,7 @@ import json
 
 import importlib
 import runes as r
-from runes import stat_roles
+from runes import stat_list, main_sets, off_sets
 import monsters as m
 importlib.reload(r)
 
@@ -17,56 +17,32 @@ with open(json_path, encoding='utf-8') as json_data:
 
 #GRADE_SETTING='legend' # Setting for gems and grinds
 
-attributes = ['HP','ATK','DEF','SPD','CR','CD','ACC','RES']
-
-main_sets = ['VIOLENT','SWIFT', 'RAGE', 'FATAL', 'DESPAIR', 'VAMPIRE']
-off_sets = ['BLADE','ENERGY','GUARD','FOCUS','ENDURE','ENHANCE','WILL','SHIELD','REVENGE','NEMESIS','DESTROY','FIGHT','DETERMINATION','ACCURACY','TOLERANCE','SEAL','INTANGIBLE']
-
 my_monsters = m.load_my_monsters(data)
 
-# test_df = all_gem_grind_combinations(runes_df[runes_df.index == 37171789785])
-# test_df
 # %%
 runes_df = r.load_runes(data)
 maxed_runes = r.all_gem_grind_combinations(runes_df)
 
 my_monsters['name'] = my_monsters['name'].str.title()
 
-# %%
-
-
-
-# print('test')
-# all_gem_grind_combinations(runes_df[runes_df.index == 37171789785])
+#test_df = r.all_gem_grind_combinations(runes_df[runes_df.index == 37171789785])
+#test_df
 
 # %%
-# Define the slot-to-column mapping based on your 'my_monsters' dataframe
+
+# Map slot to mainset column based on fixed and variable main stats
 slot_to_column_mapping = {
+    1: None,  # Slot 1 has a fixed main stat (Flat ATK)
     2: 'most_popular_slot2',
+    3: None,  # Slot 3 has a fixed main stat (Flat DEF)
     4: 'most_popular_slot4',
+    5: None,  # Slot 5 has a fixed main stat (Flat HP)
     6: 'most_popular_slot6'
 }
-
-#maxed_runes['set_id'] = maxed_runes['set_id'].str.upper()
-#maxed_runes['main_stat_type'] = maxed_runes['main_stat_type'].str.upper()
-#maxed_runes['main_stat_type'] = maxed_runes['main_stat_type'].replace({'PERC HP':'HP','PERC ATK':'ATK','PERC DEF':'DEF','CRIT RATE':'CR','CRIT DMG':'CD'})
-
-# %%
 
 def find_best_runes_for_monster(monster,runes):
     monster_preferences = monsters_prepared[monsters_prepared['name'] == monster].copy()
     
-    # Map slot to mainset column based on fixed and variable main stats
-    slot_to_column_mapping = {
-        1: None,  # Slot 1 has a fixed main stat (Flat ATK)
-        2: 'most_popular_slot2',
-        3: None,  # Slot 3 has a fixed main stat (Flat DEF)
-        4: 'most_popular_slot4',
-        5: None,  # Slot 5 has a fixed main stat (Flat HP)
-        6: 'most_popular_slot6'
-    }
-
-
     best_runes_for_monster = pd.DataFrame()
     for slot, column in slot_to_column_mapping.items():
         # Use all sets for the slot
@@ -112,7 +88,6 @@ def find_best_runes_for_monster(monster,runes):
     best_runes_for_monster = best_runes_for_monster.drop(columns=['key'])
     return best_runes_for_monster
 
-
 def find_best_runes_for_monsters(monster_list,runes):
     # create an empty dataframe based on runes
     used_runes = runes.head(0).copy()
@@ -133,21 +108,12 @@ def find_best_monster_for_rune(rune: str,monsters: pd.DataFrame):
     rune = maxed_runes[maxed_runes['rune_id'] == rune].copy()
     
     #fill HP, ATK, DEF, SPD, CR, CD, ACC, RES with 0 if they are nan
-    rune[['HP','ATK','DEF','SPD','CR','CD','ACC','RES']] = rune[['HP','ATK','DEF','SPD','CR','CD','ACC','RES']].fillna(0)
+    rune[r.stat_list] = rune[r.stat_list].fillna(0)
 
     # if the rune is in main_sets rune, then only consider monsters that have the same main set
     if rune['set_id'].values[0] in main_sets:
         monsters = monsters[monsters['most_popular_mainset'] == rune['set_id'].values[0]].copy()        
 
-    # if rune is slots 2,4,6 then only consider monsters that have the same main stat
-    slot_to_column_mapping = {
-        1: None,  # Slot 1 has a fixed main stat (Flat ATK)
-        2: 'most_popular_slot2',
-        3: None,  # Slot 3 has a fixed main stat (Flat DEF)
-        4: 'most_popular_slot4',
-        5: None,  # Slot 5 has a fixed main stat (Flat HP)
-        6: 'most_popular_slot6'
-    }
     column = slot_to_column_mapping[rune['slot_no'].values[0]]
     if column:
         monsters = monsters[monsters[column] == rune['main_stat_type'].values[0]].copy()
@@ -181,36 +147,69 @@ def find_best_monsters_for_all_runes(rune_list,monsters):
         print(rune,counter,'of',len(rune_list))
         results.append(find_best_monster_for_rune(rune,monsters))
     return pd.concat(results)
-
 # %%
-monster_priority = pd.read_csv('monster_priority.csv')
+def update_monster_priority():
+    monster_priority = pd.read_csv('monster_priority.csv')
+    monster_priority = monster_priority.drop_duplicates(subset=['name'],keep='first')
 
-# Prepare monster data for merging
-monsters_prepared = my_monsters[['name'
-                                 ,'top_4_sub_stats'
-                                 ,'most_popular_slot2'
-                                 ,'most_popular_slot4'
-                                 ,'most_popular_slot6'
-                                 ,'most_popular_mainset'
-                                 ,'most_popular_offset'
-                                 ,'HP_value'
-                                 ,'ATK_value'
-                                 ,'DEF_value'
-                                 ,'SPD_value'
-                                 ,'CR_value'
-                                 ,'CD_value'
-                                 ,'ACC_value'
-                                 ,'RES_value']]
-monsters_prepared = monsters_prepared.dropna(subset=['most_popular_mainset']).astype({'most_popular_mainset':
-str})
+    clean_up_columns = ['primary sets','off sets','slot 2s','slot 4s','slot 6s','subs high priority','subs normal priority']
+    for col in clean_up_columns:
+        monster_priority[col] = monster_priority[col].str.strip()
+        monster_priority[col] = monster_priority[col].str.replace(' ', '')
+        monster_priority[col] = monster_priority[col].str.upper()
+    
+    # ### REMOVE ###
+    clean_up_columns = ['primary sets','off sets','slot 2s','slot 4s','slot 6s']
+    for col in clean_up_columns:
+        monster_priority[col] = monster_priority[col].str.split(',').str.get(0)
+    
+    monster_priority['off sets'] = monster_priority['off sets'].str.replace('UNKNOWN','')
 
-available_monsters_list = monster_priority[monster_priority['name'].isin(monsters_prepared['name'])]['name'].tolist()
+    # Prepare monster data for merging
+    monsters_prepared = my_monsters[['name'
+                                    ,'top_4_sub_stats'
+                                    ,'most_popular_slot2'
+                                    ,'most_popular_slot4'
+                                    ,'most_popular_slot6'
+                                    ,'most_popular_mainset'
+                                    ,'most_popular_offset'
+                                    ,'HP_value'
+                                    ,'ATK_value'
+                                    ,'DEF_value'
+                                    ,'SPD_value'
+                                    ,'CR_value'
+                                    ,'CD_value'
+                                    ,'ACC_value'
+                                    ,'RES_value']].copy()
+    
+    monster_priority = monster_priority.rename(columns={'slot 2s':'most_popular_slot2'
+                                                        ,'slot 4s':'most_popular_slot4'
+                                                        ,'slot 6s':'most_popular_slot6'
+                                                        ,'primary sets':'most_popular_mainset'
+                                                        ,'off sets':'most_popular_offset'})
+    
+    column_update_list = ['most_popular_mainset'
+                          ,'most_popular_slot2'
+                          ,'most_popular_slot4'
+                          ,'most_popular_slot6']
 
-# add 'top_4_sub_stats' from monster_prepared to monster_priority based on name
-monster_priority = monster_priority.set_index('name').join(monsters_prepared.set_index('name')['top_4_sub_stats']).reset_index()
+    monster_priority = monster_priority.dropna(subset=column_update_list,how='any').astype({'most_popular_mainset':str
+                                                                                            ,'most_popular_slot2':str
+                                                                                            ,'most_popular_slot4':str
+                                                                                            ,'most_popular_slot6':str})
 
+    monsters_prepared.set_index('name').update(monster_priority.set_index('name')[column_update_list]
+                                                                   ,overwrite=True
+                                                                   ,errors='ignore')
+
+    # add 'top_4_sub_stats' from monster_prepared to monster_priority based on name
+    #monster_priority = monster_priority.set_index('name').join(monsters_prepared.set_index('name')['top_4_sub_stats']).reset_index()
+    return monsters_prepared
+
+monsters_prepared = update_monster_priority()
 best_monsters_for_runes = find_best_monsters_for_all_runes(runes_df.index.tolist(),monsters_prepared)
 best_monsters_for_runes = best_monsters_for_runes.sort_values('Total Value',ascending=False)
+
 
 # %%
 monsters = my_monsters.dropna(subset=['top_4_sub_stats'])
@@ -256,15 +255,9 @@ runes_df = runes_df.join(best_monsters_for_runes[['rune_id','Total Value']].set_
 
 # %%
 def get_rolls(runes_df):
-    stat_list = ['HP', 'ATK', 'DEF', 'SPD','CR', 'CD', 'ACC', 'RES']
-    stat_list_for_stat_roles = ['HP', 'ATK', 'DEF', 'SPD','CR', 'CD', 'ACC', 'RES']
-
-    rename_dict = dict(zip(stat_list,stat_list_for_stat_roles))
-    runes_df = runes_df.rename(columns=rename_dict)
-
     runes_df['New Total Rolls'] = 0
-    for stat in stat_list_for_stat_roles:
-        runes_df['New Total Rolls'] = runes_df['New Total Rolls'] + runes_df[stat].fillna(0)/stat_roles[stat]
+    for stat in r.stat_list:
+        runes_df['New Total Rolls'] = runes_df['New Total Rolls'] + runes_df[stat].fillna(0)/r.stat_roles[stat]
     return runes_df
 
 best_monsters_for_runes = get_rolls(best_monsters_for_runes)

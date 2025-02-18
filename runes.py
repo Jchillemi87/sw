@@ -3,6 +3,11 @@ GRADE_SETTING='hero' # Setting for gems and grinds
 
 import pandas as pd
 
+stat_list = ['HP','ATK','DEF','SPD','CR','CD','ACC','RES']
+
+main_sets = ['VIOLENT','SWIFT', 'RAGE', 'FATAL', 'DESPAIR', 'VAMPIRE']
+off_sets = ['BLADE','ENERGY','GUARD','FOCUS','ENDURE','ENHANCE','WILL','SHIELD','REVENGE','NEMESIS','DESTROY','FIGHT','DETERMINATION','ACCURACY','TOLERANCE','SEAL','INTANGIBLE']
+
 gems_and_grinds_dict = {
     'type': ['gem', 'gem', 'grind', 'grind'],
     'grade': ['legend', 'hero', 'legend', 'hero'],
