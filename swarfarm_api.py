@@ -1,6 +1,33 @@
 # %%
+import socket
 import requests
+import urllib3
+import ssl
 import json
+
+header = {
+  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
+  "X-Requested-With": "XMLHttpRequest"
+}
+
+class CustomHttpAdapter (requests.adapters.HTTPAdapter):
+    # "Transport adapter" that allows us to use custom ssl_context.
+ 
+    def __init__(self, ssl_context=None, **kwargs):
+        self.ssl_context = ssl_context
+        super().__init__(**kwargs)
+ 
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = urllib3.poolmanager.PoolManager(
+            num_pools=connections, maxsize=maxsize,
+            block=block, ssl_context=self.ssl_context)
+ 
+def get_legacy_session():
+    ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+    ctx.options |= 0x4  # OP_LEGACY_SERVER_CONNECT
+    session = requests.session()
+    session.mount('https://', CustomHttpAdapter(ctx))
+    return session
 
 def get_all_monsters():
     """
@@ -13,7 +40,7 @@ def get_all_monsters():
 
     while next_url:
         try:
-            response = requests.get(next_url)
+            response = get_legacy_session().get(next_url, headers=header)
             if response.status_code == 200:
                 data = response.json()
                 monsters.extend(data['results'])
@@ -67,7 +94,7 @@ def get_monster_data(monster_id):
     url = f"{base_url}{monster_id}/"
     
     try:
-        response = requests.get(url)
+        response = get_legacy_session().get(url, headers=header)
         if response.status_code == 200:
             return response.json()  # Return JSON response
         elif response.status_code == 404:
