@@ -289,10 +289,10 @@ def analyze_set_builds(df, base_stats, set_bonus_data):
 # }
 # player_file = 'adriana_water_vanilla_cookie.csv'
 
-import swarfarm_api
-base_stats = swarfarm_api.get_monster_stats('Rakan')
-
 def main():
+    # import swarfarm_api
+    # base_stats = swarfarm_api.get_monster_stats('Rakan')
+
     current_path = os.path.dirname(os.path.abspath(__file__))
     
     # Load player data.

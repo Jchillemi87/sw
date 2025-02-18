@@ -1,5 +1,6 @@
 # player data can just be downloaded when needed
 player_data/*
+runes.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
