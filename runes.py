@@ -56,7 +56,7 @@ grind = {
     }
 }
 
-set_id_dic = {
+set_id_dict = {
     1: 'ENERGY',
     2: 'GUARD',
     3: 'SWIFT',
@@ -84,7 +84,7 @@ set_id_dic = {
     25: 'INTANGIBLE'
 }
 
-stat_dic = {
+stat_dict = {
     1:'Flat HP'
     ,2:'HP'
     ,3:'Flat Atk'
@@ -108,29 +108,41 @@ def load_runes(data):
     #,'wizard_id'
     #,'occupied_id'
     ,'upgrade_limit']
-    runes['set_id'] = runes['set_id'].map(set_id_dic)
+
+    grade_id_dict = {3:'rare'
+        ,4:'hero'
+        ,5:'legendary'}
 
     renameCols={'upgrade_curr':'level'
                 ,'class':'stars'
                 ,'pri_eff':'main_stat'
-                ,'prefix_eff':'innate'}
+                ,'prefix_eff':'innate'
+                ,'extra':'grade'}    
     
     runes = runes.drop(dropCols,axis=1).rename(columns=renameCols)
+
+    # check for anciant runes
+    runes['ancient'] = runes['grade'] > 10
+    runes.loc[runes['ancient'],'grade'] -= 10
+
+    runes['set_id'] = runes['set_id'].map(set_id_dict)
+    runes['grade'] = runes['grade'].map(grade_id_dict)
+
     runes = runes.set_index('rune_id')
 
     runes_main_stat = pd.DataFrame(runes['main_stat'].tolist(),columns=['main_stat_type','main_stat_value'],index=runes.index)
-    runes_main_stat['main_stat_type']= runes_main_stat['main_stat_type'].map(stat_dic)
+    runes_main_stat['main_stat_type']= runes_main_stat['main_stat_type'].map(stat_dict)
     runes = runes.join(runes_main_stat)
 
     # Innrate
     runeInnates = pd.DataFrame(runes['innate'].to_list(),columns=['Stat','Base'],index=runes.index)
-    runeInnates['Stat']= runeInnates['Stat'].map(stat_dic)
+    runeInnates['Stat']= runeInnates['Stat'].map(stat_dict)
     runeInnates['Rolls']= runeInnates['Base']/runeInnates['Stat'].map(stat_roles)
     runes = runes.join(runeInnates)
 
 
     rune_stats = pd.DataFrame(runes['sec_eff'].explode().to_list(),columns=['Stat','Base','Gemmed','Grind'],index=runes['sec_eff'].explode().index)
-    rune_stats['Stat']= rune_stats['Stat'].map(stat_dic)
+    rune_stats['Stat']= rune_stats['Stat'].map(stat_dict)
     rune_stats['Rolls'] = rune_stats['Base']/rune_stats['Stat'].map(stat_roles)
     rune_stats.loc[rune_stats['Rolls']< 0,'Rolls'] = 0
     rune_base_stats = pd.concat([rune_stats,runeInnates])
@@ -150,7 +162,9 @@ def load_runes(data):
     != 'Total_Rolls'].round(),
     errors='ignore')
 
-    runes = runes[['slot_no','set_id','main_stat_type','main_stat_value','level','occupied_id']].join(rune_base_stats_clean).join(rune_stat_rolls_clean)
+    columns_to_keep = ['slot_no','set_id','main_stat_type','main_stat_value','level','occupied_id','grade','ancient']
+    
+    runes = runes[columns_to_keep].join(rune_base_stats_clean).join(rune_stat_rolls_clean)
     runes['Missing_Rolls']= (4- runes['level'].astype(int)/3).astype(int)
     runes.loc[runes['Missing_Rolls']< 0,'Missing_Rolls'] = 0
 
@@ -168,8 +182,10 @@ def load_runes(data):
 
     # create a clean runes df
     # Took out ,'Spd','Spd Rolls','Crit Rate','Crit Rate Rolls','Efficiency','Missing_Rolls' from runes_df to keep it cleaner
-    runes_df = runes[['slot_no','set_id','main_stat_type','main_stat_value','level','occupied_id']]
-    runeInnates = runeInnates.rename(columns={'Stat':'Innate Stat' ,'Base':'Innate Stat Value' ,'Rolls':'Innate Stat Rolls'})
+    runes_df = runes[columns_to_keep]
+    runeInnates = runeInnates.rename(columns={'Stat':'Innate Stat'
+                                              ,'Base':'Innate Stat Value'
+                                              ,'Rolls':'Innate Stat Rolls'})
     runes_df = runes_df.join(runeInnates)
     # remove rune_base_stats's multi column index
     rune_base_stats_1_level = rune_base_stats['Base'].add_prefix('Base ').join(rune_base_stats['Gemmed'].add_prefix('Gemmed ')).join(rune_base_stats['Grind'].add_prefix('Grinded ')).join(rune_base_stats['Rolls'].add_prefix('Rolls '))
@@ -253,11 +269,11 @@ def all_gem_grind_combinations(runes_df):
     runes_with_all_gems = []
     lGems = gems_and_grinds.loc[(gems_and_grinds['type']=='gem') & (gems_and_grinds['grade']==GRADE_SETTING)].drop(columns=['type','grade'])
     
-    #fill na from 'Base ' + stat_dic.values() with 0
-    runes_df[['Base '+stat for stat in stat_dic.values()]] = runes_df[['Base '+stat for stat in stat_dic.values()]].fillna(0)
+    #fill na from 'Base ' + stat_dict.values() with 0
+    runes_df[['Base '+stat for stat in stat_dict.values()]] = runes_df[['Base '+stat for stat in stat_dict.values()]].fillna(0)
     
-    for base_stat in stat_dic.values():
-        for gem_stat in stat_dic.values():
+    for base_stat in stat_dict.values():
+        for gem_stat in stat_dict.values():
             runes_with_new_gemmed_stat = runes_df[~(runes_df['Base '+base_stat].isna()) | (runes_df['Base '+base_stat] != 0)].copy()
             runes_with_new_gemmed_stat['New '+base_stat] = 0
             runes_with_new_gemmed_stat['Suggested Gem Out'] = base_stat

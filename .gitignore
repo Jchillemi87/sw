@@ -1,4 +1,5 @@
-# player data can just be downloaded when needed
+# player data can just be downloaded or created when needed
+monsters_data.json
 player_data/*
 runes.xlsx
 

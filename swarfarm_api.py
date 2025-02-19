@@ -3,7 +3,10 @@ import socket
 import requests
 import urllib3
 import ssl
+import os
 import json
+import time
+from datetime import datetime, timedelta
 
 header = {
   "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
@@ -32,8 +35,26 @@ def get_legacy_session():
 def get_all_monsters():
     """
     Fetches the list of all monsters from the SWARFARM API.
+    First checks for a local copy saved as 'monsters_data.json' and returns it if it is not older than 1 month.
+    Otherwise, the data is fetched from the API and saved locally.
+    
     :return: List of dictionaries containing monster data or an error message.
     """
+    file_name = 'monsters_data.json'
+    one_month = timedelta(days=30)
+
+    # Check if local file exists and if it is fresh enough
+    if os.path.exists(file_name):
+        file_mod_time = datetime.fromtimestamp(os.path.getmtime(file_name))
+        if datetime.now() - file_mod_time < one_month:
+            try:
+                with open(file_name, 'r') as f:
+                    print("Loading monsters data from local file.")
+                    return json.load(f)
+            except Exception as e:
+                print("Error loading local copy, fetching new data:", e)
+    
+    # If no valid local copy, fetch from API
     base_url = "https://swarfarm.com/api/v2/monsters/"
     monsters = []
     next_url = base_url
@@ -49,7 +70,14 @@ def get_all_monsters():
                 return {"error": f"Unexpected error: {response.status_code}"}
         except requests.exceptions.RequestException as e:
             return {"error": f"Request failed: {e}"}
-
+    
+    # Save the freshly fetched data locally for future use
+    try:
+        with open(file_name, 'w') as f:
+            json.dump(monsters, f)
+    except Exception as e:
+        print("Error saving data locally:", e)
+    
     return monsters
 
 def get_monster_stats(name):
