@@ -186,10 +186,4 @@ def update_monster_priority(my_monsters):
     #monster_priority = monster_priority.set_index('name').join(monsters_prepared.set_index('name')['top_4_sub_stats']).reset_index()
     return monsters_prepared
 
-def get_rolls(runes_df):
-    runes_df['New Total Rolls'] = 0
-    for stat in r.stat_list:
-        runes_df['New Total Rolls'] = runes_df['New Total Rolls'] + runes_df[stat].fillna(0)/r.stat_roles[stat]
-    return runes_df
-
 # %%

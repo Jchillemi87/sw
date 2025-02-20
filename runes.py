@@ -449,3 +449,9 @@ def score_rune(row):
     total_score += set_bonus
 
     return round(total_score, 2)
+
+def get_rolls(runes_df):
+    runes_df['New Total Rolls'] = 0
+    for stat in stat_list:
+        runes_df['New Total Rolls'] = runes_df['New Total Rolls'] + runes_df[stat].fillna(0)/stat_roles[stat]
+    return runes_df

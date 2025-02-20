@@ -8,9 +8,9 @@ import importlib
 import runes as r
 importlib.reload(r)
 import monsters as m
-import rune_optimizer
-importlib.reload(rune_optimizer)
-from rune_optimizer import update_monster_priority,find_best_runes_for_monsters,find_best_monsters_for_all_runes,get_rolls
+import monster_rune_pairing
+importlib.reload(monster_rune_pairing)
+from monster_rune_pairing import update_monster_priority,find_best_runes_for_monsters,find_best_monsters_for_all_runes
 
 #json_path = 'C:/Users/p3057544/OneDrive - Charter Communications/Documents/sw/FractalParadox-35313848.json'
 #json_path = 'C:/Users/Joseph/Desktop/Summoners War Exporter Files/FractalParadox-35313848.json'
@@ -61,11 +61,11 @@ runes_df = runes_df.merge(my_monsters[['unit_id','name']].rename(columns={'name'
 runes_df.set_index('rune_id',inplace=True)
 runes_df = runes_df.join(best_monsters_for_runes[['rune_id','Total Value']].set_index('rune_id'))
 
-# add Total Rolls to runes_df and best_monsters_for_runes
-best_monsters_for_runes = get_rolls(best_monsters_for_runes)
+# # add Total Rolls to runes_df and best_monsters_for_runes
+best_monsters_for_runes = r.get_rolls(best_monsters_for_runes)
 runes_df = runes_df.join(best_monsters_for_runes.set_index('rune_id')[['New Total Rolls']])
 
-# %%
+# %% tidy up and prepare rune_df for export
 runes_df = runes_df.rename(columns={'Rolls nan':'Total Rolls'})
 runes_df['Total Rolls'] = runes_df[['Rolls ACC','Rolls CD','Rolls CR','Rolls ATK','Rolls DEF','Rolls HP','Rolls RES','Rolls SPD']].sum(axis=1)
 #excluding 'Rolls Flat Atk','Rolls Flat Def','Rolls Flat HP'
@@ -89,7 +89,6 @@ if 'Innate Stat Value' not in runes_df.columns:
 else:
     runes_df['Innate Stat Value'] = runes_df['Innate Stat Value'].fillna(0)
 # %% Get a Score for each rune
-
 for stat in r.stat_list:
     column_name = 'Base '+stat
     runes_df[stat] = runes_df[column_name]
@@ -97,7 +96,7 @@ for stat in r.stat_list:
 runes_df['Score'] = runes_df.apply(r.score_rune,axis=1)
 
 # move 'Total Value' and 'Total Rolls' to the front of the dataframe
-column_order_list = ['slot_no','set_id','main_stat_type','Score','Total Value','Total Rolls','New Total Rolls','SPD','location']
+column_order_list = ['slot_no','set_id','main_stat_type','Score','SPD','Total Rolls','Total Value','New Total Rolls','location']
 runes_df = runes_df[column_order_list + [col for col in runes_df.columns if col not in column_order_list]]
 
 # if gemmed is false, add 1 to Total Rolls
@@ -105,14 +104,13 @@ runes_df['Total Rolls'] = runes_df['Total Rolls'] + runes_df['Gemmed'].astype(in
 
 runes_df = runes_df.drop(columns=r.stat_list)
 
-# %%
-# export runes_df,monsters_prepared,maxed_runes,best_monsters_for_runes,best_runes_for_monsters to excel
+# %% export runes_df,monsters_prepared,maxed_runes,best_monsters_for_runes,best_runes_for_monsters to excel
 output_dir_path = os.path.dirname(os.path.abspath(__file__))
 
 with pd.ExcelWriter(output_dir_path+'/runes.xlsx') as writer:
     runes_df.to_excel(writer,sheet_name='runes_df')
     monsters_prepared.to_excel(writer,sheet_name='monsters_prepared',index=False)
-    #maxed_runes.to_excel(writer,sheet_name='maxed_runes',index=False)
+    maxed_runes.to_excel(writer,sheet_name='maxed_runes',index=False)
     best_monsters_for_runes.to_excel(writer,sheet_name='best_monsters_for_runes',index=False)
     best_runes_for_monsters.to_excel(writer,sheet_name='best_runes_for_monsters',index=True)
 
