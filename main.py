@@ -27,43 +27,6 @@ my_monsters['name'] = my_monsters['name'].str.title()
 
 # %% find_best_monsters_for_all_runes
 monsters_prepared = update_monster_priority(my_monsters)
-best_monsters_for_runes = find_best_monsters_for_all_runes(maxed_runes,monsters_prepared)
-best_monsters_for_runes = best_monsters_for_runes.sort_values('Total Value',ascending=False)
-
-# %% find_best_runes_for_monsters
-monsters = my_monsters.dropna(subset=['top_4_sub_stats'])
-columns_of_interest= best_monsters_for_runes.columns[best_monsters_for_runes.columns.isin(maxed_runes.columns)]
-best_runes_for_monsters = find_best_runes_for_monsters(monsters,runes=best_monsters_for_runes[columns_of_interest])
-
-best_runes_for_monsters = best_runes_for_monsters.sort_values('Total Value',ascending=True)
-best_runes_for_monsters = best_runes_for_monsters.drop(columns=['HP','ATK','DEF','SPD','CR','CD','ACC','RES'
-                                                                ,'HP_value','ATK_value','DEF_value','SPD_value','CR_value','CD_value','ACC_value','RES_value'
-                                                                ,'hp_score','atk_score','def_score','spd_score','cr_score','cd_score','acc_score','res_score'])
-best_runes_for_monsters = best_runes_for_monsters.set_index('rune_id').join(runes_df[['Base SPD'
-                                                                                     ,'Base CR'
-                                                                                     ,'Base HP'
-                                                                                     ,'Base ATK'
-                                                                                     ,'Base DEF'
-                                                                                     ,'Base ACC'
-                                                                                     ,'Base CD'
-                                                                                     ,'Base RES'
-                                                                                     ,'Base Flat HP'
-                                                                                     ,'Base Flat Atk'
-                                                                                     ,'Base Flat Def'
-                                                                                     ]])
-# %% Add Append Total Value and New Total Rolls to runes dataframe
-runes_df = runes_df.reset_index()
-runes_df = runes_df.merge(my_monsters[['unit_id','name']].rename(columns={'name':'location'})
-               ,left_on='occupied_id'
-               ,right_on='unit_id'
-               ,how='left').drop(columns='unit_id')
-
-runes_df.set_index('rune_id',inplace=True)
-runes_df = runes_df.join(best_monsters_for_runes[['rune_id','Total Value']].set_index('rune_id'))
-
-# # add Total Rolls to runes_df and best_monsters_for_runes
-best_monsters_for_runes = r.get_rolls(best_monsters_for_runes)
-runes_df = runes_df.join(best_monsters_for_runes.set_index('rune_id')[['New Total Rolls']])
 
 # %% tidy up and prepare rune_df for export
 runes_df = runes_df.rename(columns={'Rolls nan':'Total Rolls'})
@@ -96,7 +59,7 @@ for stat in r.stat_list:
 runes_df['Score'] = runes_df.apply(r.score_rune,axis=1)
 
 # move 'Total Value' and 'Total Rolls' to the front of the dataframe
-column_order_list = ['slot_no','set_id','main_stat_type','Score','SPD','Total Rolls','Total Value','New Total Rolls','location']
+column_order_list = ['slot_no','set_id','main_stat_type','Score','SPD','Total Rolls']
 runes_df = runes_df[column_order_list + [col for col in runes_df.columns if col not in column_order_list]]
 
 # if gemmed is false, add 1 to Total Rolls
@@ -111,8 +74,6 @@ with pd.ExcelWriter(output_dir_path+'/runes.xlsx') as writer:
     runes_df.to_excel(writer,sheet_name='runes_df')
     monsters_prepared.to_excel(writer,sheet_name='monsters_prepared',index=False)
     maxed_runes.to_excel(writer,sheet_name='maxed_runes',index=False)
-    best_monsters_for_runes.to_excel(writer,sheet_name='best_monsters_for_runes',index=False)
-    best_runes_for_monsters.to_excel(writer,sheet_name='best_runes_for_monsters',index=True)
 
 # %%
 # HIGH PRIORITY GLITCH: A rune's stat maybe recommended to be gemmed out if it's current value is equal to or lower than the max gemmed value + maxed grind value
