@@ -349,10 +349,9 @@ def score_rune(row):
     # --------------------------------------------------------
     # B) Base Score from Sub Stats
     # --------------------------------------------------------
-    sub_stats = ['HP','ATK','DEF','SPD','CR','CD','ACC','RES']
     total_score = 0.0
 
-    for stat in sub_stats:
+    for stat in stat_list:
         # Grab the sub stat value from columns (HP, ATK, DEF, SPD, CR, CD, ACC, RES)
         # The DataFrame from all_gem_grind_combinations renamed these to capital letters:
         value = row.get(stat, 0)
@@ -414,7 +413,7 @@ def score_rune(row):
     # and if it has a positive value (meaning it exists).
     innate_stat_name = row.get('Innate Stat', '')
     innate_stat_val = row.get('Innate Stat Value', 0)
-    if innate_stat_name in sub_stats and innate_stat_val > 0:
+    if innate_stat_name in stat_list and innate_stat_val > 0:
         # It's presumably a grindable stat => apply penalty
         total_score -= 0.5
 
