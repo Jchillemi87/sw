@@ -203,38 +203,6 @@ def load_runes(data):
     runes_df['Gemmed_Stat_Name']= runes_df['Gemmed_Stat_Name'].str.replace('Gemmed ','')
     return runes_df
 
-def drop_impossible_runes(df):
-    runes_df = df.copy()
-
-    #exclude Suggested gem in and Suggested gem out that are in main_stat_type
-    mask_main_stat = (runes_df['Suggested Gem In'] == runes_df['main_stat_type']) | (runes_df['Suggested Gem Out'] == runes_df['main_stat_type'])
-    runes_df = runes_df.drop(runes_df[mask_main_stat].index)
-
-    #exclude Suggested gem in and Suggested gem out that are in Innate Stat
-    mask_innate = (runes_df['Suggested Gem In'] == runes_df['Innate Stat']) | (runes_df['Suggested Gem Out'] == runes_df['Innate Stat'])
-    runes_df = runes_df.drop(runes_df[mask_innate].index)
-
-    #exclude Suggested gem out that don't match the Gemmed_Stat_Name
-    mask_already_gemmed = (runes_df['Suggested Gem Out'] != runes_df['Gemmed_Stat_Name']) & (runes_df['Gemmed_Stat_Name'] != '')
-    runes_df = runes_df.drop(runes_df[mask_already_gemmed].index)
-
-    mask_slot_1 = ((runes_df['slot_no'] == 1) & (runes_df['Suggested Gem In'].isin(['DEF','Flat Def','Flat Atk'])))
-    runes_df = runes_df.drop(runes_df[mask_slot_1].index)
-
-    mask_slot_3 = ((runes_df['slot_no'] == 3) & (runes_df['Suggested Gem In'].isin(['ATK','Flat Def','Flat Atk'])))
-    runes_df = runes_df.drop(runes_df[mask_slot_3].index)
-
-    mask_slot_5 = ((runes_df['slot_no']== 5) & (runes_df['Suggested Gem In'] == 'Flat HP'))
-    runes_df = runes_df.drop(runes_df[mask_slot_5].index)
-
-    # drop runes where suggested gem out is a stat that's already zero ex. can't suggest gem out of Flat HP if Base Flat HP is 0
-    for stat in ['Flat Atk','Flat Def','Flat HP','ATK','DEF','HP','SPD','CD','CR','ACC','RES']:
-        mask = (runes_df['Base '+ stat] == 0) & (runes_df['Suggested Gem Out'] == stat)
-        runes_df = runes_df.drop(runes_df[mask].index)
-
-
-    return runes_df
-
 def grind_runes(df,grade=GRADE_SETTING):
     runes_df = df.copy()
     legend_grinds = gems_and_grinds[(gems_and_grinds['type'] == 'grind') & (gems_and_grinds['grade'] == grade)][['Flat Atk','Flat Def','Flat HP','ATK','DEF','HP','SPD']]
@@ -259,35 +227,69 @@ def get_new_stats(df):
     new_runes_df.columns = [string.replace('New','Base') for string in new_runes_df.columns]
 
     runes_df.update(new_runes_df)
+
+    runes_df = runes_df.reset_index()
     
     for stat in ['Flat Atk','Flat Def','Flat HP','ATK','DEF','HP','SPD']:
         # only add grinded stats to runes that have a base stat
         runes_df.loc[runes_df['Base '+ stat] > 0 , 'New ' + stat] = runes_df['Base '+ stat] + runes_df['Grinded ' + stat]
+
     return runes_df
 
 def all_gem_grind_combinations(runes_df):
     runes_with_all_gems = []
-    lGems = gems_and_grinds.loc[(gems_and_grinds['type']=='gem') & (gems_and_grinds['grade']==GRADE_SETTING)].drop(columns=['type','grade'])
+    gem_max_rolls = gems_and_grinds.loc[(gems_and_grinds['type']=='gem') & (gems_and_grinds['grade']==GRADE_SETTING)].drop(columns=['type','grade'])
     
     #fill na from 'Base ' + stat_dict.values() with 0
     runes_df[['Base '+stat for stat in stat_dict.values()]] = runes_df[['Base '+stat for stat in stat_dict.values()]].fillna(0)
+
+    def filter_runes(stat,df):
+        # exclude runes that have the stat as their main stat
+        df = df[df['main_stat_type'] != stat]
+
+        #exclude runes that have the stat as an Innate Stat
+        df = df[df['Innate Stat'] != stat]
+
+        # exclude slots that can't have the stat
+        if stat in ['DEF','Flat Def','Flat Atk']:
+            df = df[df['slot_no'] != 1]
+
+        if stat in ['ATK','Flat Def','Flat Atk']:
+            df = df[df['slot_no'] != 3]
+
+        if stat == 'Flat HP':
+            df = df[df['slot_no'] != 5]
+
+        return df
+
+    for gem_out_stat in stat_dict.values():
+        # exclude runes that don't have the gem_out_stat in their subs
+        runes_with_gem_out_stat = runes_df[runes_df['Base '+gem_out_stat] > 0.0].copy() #check to see why we also were exluding runes that had an NA value for the stat
+
+        # only include runes that have no gem or have the current gem_out_stat as their gem (example: we can't gem out ATK if we have already gemmed in HP)
+        runes_with_gem_out_stat = runes_with_gem_out_stat[(~runes_with_gem_out_stat['Gemmed']) | (runes_with_gem_out_stat['Gemmed_Stat_Name'] == gem_out_stat)]
+
+        runes_with_gem_out_stat = filter_runes(gem_out_stat,runes_with_gem_out_stat)
     
-    for base_stat in stat_dict.values():
-        for gem_stat in stat_dict.values():
-            runes_with_new_gemmed_stat = runes_df[~(runes_df['Base '+base_stat].isna()) | (runes_df['Base '+base_stat] != 0)].copy()
-            runes_with_new_gemmed_stat['New '+base_stat] = 0
-            runes_with_new_gemmed_stat['Suggested Gem Out'] = base_stat
+        for gem_in_stat in stat_dict.values():
+            runes_with_new_gemmed_stat = filter_runes(gem_in_stat,runes_with_gem_out_stat)
+
+            # exclude any runes where the stat is equal or higher to the max roll of our current gem grade
+            runes_with_new_gemmed_stat = runes_with_new_gemmed_stat[runes_with_new_gemmed_stat['Base '+gem_in_stat] < gem_max_rolls.iloc[0][gem_in_stat]]
+            
+            runes_with_new_gemmed_stat['New '+gem_out_stat] = 0 # set the new value of the original stat to 0
+            runes_with_new_gemmed_stat['Suggested Gem Out'] = gem_out_stat
             runes_with_new_gemmed_stat['Suggested Gem In'] = ''
             runes_with_new_gemmed_stat['Logic']= ''
-            runes_with_new_gemmed_stat['Suggested Gem In']= gem_stat
-            new_stat_value = lGems.iloc[0][gem_stat]
-            runes_with_new_gemmed_stat['New '+lGems[gem_stat].name] = new_stat_value
-            runes_with_new_gemmed_stat['Logic']= f'Gem In {new_stat_value} {gem_stat} Over {base_stat}'
+            runes_with_new_gemmed_stat['Suggested Gem In'] = gem_in_stat
+            new_stat_value = gem_max_rolls.iloc[0][gem_in_stat]
+            runes_with_new_gemmed_stat['New '+gem_max_rolls[gem_in_stat].name] = new_stat_value
+            runes_with_new_gemmed_stat['Logic']= f'Gem In {new_stat_value} {gem_in_stat} Over {gem_out_stat}'
             runes_with_all_gems.append(runes_with_new_gemmed_stat)
+
     runes_with_all_gems = pd.concat(runes_with_all_gems).reset_index()
 
     runes_with_all_gems_main_stat = runes_with_all_gems.drop(columns=['main_stat_type','Innate Stat']).set_index('rune_id').join(runes_df[['main_stat_type','Innate Stat']])
-    runes_with_all_gems_main_stat = drop_impossible_runes(runes_with_all_gems_main_stat.reset_index())#.to_clipboard(index=False)
        
     runes_with_all_gems_and_max_grinds = grind_runes(runes_with_all_gems_main_stat)
 
