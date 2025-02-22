@@ -457,3 +457,38 @@ def get_rolls(runes_df):
     for stat in stat_list:
         runes_df['New Total Rolls'] = runes_df['New Total Rolls'] + runes_df[stat].fillna(0)/stat_roles[stat]
     return runes_df
+
+def find_reapp_targets(runes_df):
+    main_stat_exclude_list = ['Flat HP','Flat Atk','Flat Def','RES','ACC','DEF']
+
+    # limit to legend runes
+    mask = runes_df['grade'] == 'legendary'
+    filtered_runes = runes_df[mask].copy()
+    
+    # exclude flats from slots 2,4,6
+    mask = ~((filtered_runes['slot_no'].isin([2,4,6])) & (filtered_runes['main_stat_type'].isin(main_stat_exclude_list)))
+    filtered_runes = filtered_runes[mask]
+
+    # exclude ATK from slot 4
+    mask = ~((filtered_runes['slot_no'] == 4) & (filtered_runes['main_stat_type'] == 'ATK'))
+    filtered_runes = filtered_runes[mask]
+
+    # exclude any slot 2 runes that are not SPD
+    drop_list = filtered_runes[(filtered_runes['slot_no'] == 2) & (filtered_runes['main_stat_type'] != 'SPD')].index
+    filtered_runes = filtered_runes.drop(drop_list)
+
+    # exclude all runes that have and important stat innate (SPD, HP%, DEF%, ATK%)
+    mask = ~filtered_runes['Innate Stat'].isin(['SPD','HP','DEF','ATK'])
+    filtered_runes = filtered_runes[mask]
+
+    # exclude all runes with 16 or more base speed
+    mask = filtered_runes['Base SPD'].fillna(0) < 16
+    filtered_runes = filtered_runes[mask]
+
+    # add violent, will runes to the final consideration list
+    considered_runes = filtered_runes[filtered_runes['set_id'].isin(['VIOLENT','WILL'])].copy()
+
+    # add violent, slot 2 SPD runes from Swift, Despair to the final consideration list
+    mask = (filtered_runes['set_id'].isin(['SWIFT','DESPAIR'])) & (filtered_runes['slot_no'] == 2)
+    considered_runes = pd.concat([filtered_runes[mask],considered_runes])
+    return considered_runes

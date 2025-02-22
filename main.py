@@ -22,6 +22,8 @@ with open(json_path, encoding='utf-8') as json_data:
 
 my_monsters = m.load_my_monsters(data)
 runes_df = r.load_runes(data)
+runes_df['Total Rolls'] = runes_df[['Rolls ACC','Rolls CD','Rolls CR','Rolls ATK','Rolls DEF','Rolls HP','Rolls RES','Rolls SPD']].sum(axis=1)
+reapp_targets = r.find_reapp_targets(runes_df)
 maxed_runes = r.all_gem_grind_combinations(runes_df)
 my_monsters['name'] = my_monsters['name'].str.title()
 
@@ -29,8 +31,8 @@ my_monsters['name'] = my_monsters['name'].str.title()
 monsters_prepared = update_monster_priority(my_monsters)
 
 # %% tidy up and prepare rune_df for export
-runes_df = runes_df.rename(columns={'Rolls nan':'Total Rolls'})
-runes_df['Total Rolls'] = runes_df[['Rolls ACC','Rolls CD','Rolls CR','Rolls ATK','Rolls DEF','Rolls HP','Rolls RES','Rolls SPD']].sum(axis=1)
+#runes_df = runes_df.rename(columns={'Rolls nan':'Total Rolls'})
+#runes_df['Total Rolls'] = runes_df[['Rolls ACC','Rolls CD','Rolls CR','Rolls ATK','Rolls DEF','Rolls HP','Rolls RES','Rolls SPD']].sum(axis=1)
 #excluding 'Rolls Flat Atk','Rolls Flat Def','Rolls Flat HP'
 
 runes_df['set_id'] = runes_df['set_id'].str.upper() # standardized for consistency
@@ -74,6 +76,7 @@ with pd.ExcelWriter(output_dir_path+'/runes.xlsx') as writer:
     runes_df.to_excel(writer,sheet_name='runes_df')
     monsters_prepared.to_excel(writer,sheet_name='monsters_prepared',index=False)
     maxed_runes.to_excel(writer,sheet_name='maxed_runes',index=False)
+    reapp_targets.to_excel(writer,sheet_name='reapps',index=False)
 
 # %%
 # HIGH PRIORITY GLITCH: A rune's stat maybe recommended to be gemmed out if it's current value is equal to or lower than the max gemmed value + maxed grind value
