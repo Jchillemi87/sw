@@ -1,0 +1,14 @@
+name,primary sets,off sets,slot 2s,slot 4s,slot 6s,spd,cr,acc,res,hp,atk,def,cd,subs high priority,subs normal priority
+Leah,SWIFT,"WILL,BLADE","ATK,SPD",CD,ATK,,100,,,,,,,SPD,"ATK,CD"
+Adriana,SWIFT,REVENGE,SPD,X,X,,,,,,,,,SPD,"HP,ACC"
+Masha,"VIOLENT,SWIFT","WILL,BLADE",SPD,"CD,CR","ATK,HP",,85,,,,,,,SPD,"HP,ATK"
+Chiwu,"SWIFT,DESPAIR","WILL,FOCUS",SPD,CD,ACC,,,100,,,,,,SPD,ACC
+Narsha,VAMPIRE,REVENGE,SPD,CR,"ATK,HP",,100,,,,,,,SPD,
+Eshir,SWIFT,UNKNOWN,SPD,HP,HP,,,,,,,,,SPD,"HP,ACC"
+Gina,DESPAIR,FOCUS,SPD,HP,ATK,,,100,,,,,,SPD,"HP,ACC"
+Heartmann,VIOLENT,,,CD,ATK,,85,,,,,,,,
+Federica,"WILL,NEMESIS,NEMESIS","WILL,NEMESIS,NEMESIS",,,,,100,,,,,,,,
+Diana,VIOLENT,WILL,"HP,SPD",CD,HP,,100,,,,,,,,
+Chandra,VIOLENT,WILL,SPD,"CD,HP",HP,,,,,,,,,SPD,HP
+Bolverk,"WILL,SHIELD,REVENGE","WILL,SHIELD,REVENGE","HP,SPD","HP,DEF","RES,HP,ACC,DEF",,,,,,,,,"RES,SPD,HP","ACC,DEF"
+Savannah,,,,,,,,,,,,,,,
