@@ -492,3 +492,154 @@ def find_reapp_targets(runes_df):
     mask = (filtered_runes['set_id'].isin(['SWIFT','DESPAIR'])) & (filtered_runes['slot_no'] == 2)
     considered_runes = pd.concat([filtered_runes[mask],considered_runes])
     return considered_runes
+
+import pandas as pd
+
+def find_runes(
+    runes_df: pd.DataFrame,
+    sets: list = [],
+    slot_2: list = [],
+    slot_4: list = [],
+    slot_6: list = [],
+    sub_stats: list = [],
+    min_sub_stats = 3
+) -> pd.DataFrame:
+    """
+    Filters the passed dataframe of runes according to:
+      1) Runes must be in one of the 'sets' (if provided).
+      2) If slot_no == 2, main_stat_type must be in 'slot_2' (if provided).
+         Likewise for slot_no == 4 => 'slot_4', slot_no == 6 => 'slot_6'.
+      3) Each rune must have at least min_sub_stats occurrences among
+         the given 'sub_stats' (checking 'Base XYZ' or 'Gemmed XYZ' != 0).
+
+    Returns the filtered DataFrame of runes that meet all criteria.
+    """
+
+    df = runes_df.copy()
+
+    # --- 1. Filter by sets ---
+    if sets:
+        # add INTANGIBLE if it's not already in sets
+        if 'INTANGIBLE' not in sets:
+            sets.append('INTANGIBLE')
+        df = df[df["set_id"].isin(sets)]
+
+    # --- 2. Filter by slot & main stat ---
+    def slot_mainstat_ok(row):
+        s = row["slot_no"]
+        m = row["main_stat_type"]  # e.g. "SPD", "CD", "HP", "Flat HP", etc.
+
+        if s == 2 and slot_2:  # If the user provided a constraint for slot 2
+            return m in slot_2
+        if s == 4 and slot_4:
+            return m in slot_4
+        if s == 6 and slot_6:
+            return m in slot_6
+        # For slots 1,3,5 or if no constraint was given for that slot,
+        # just allow it (return True).
+        return True
+
+    df = df[df.apply(slot_mainstat_ok, axis=1)]
+
+    # --- 3. Filter by number of sub-stats present ---
+    # We'll assume "sub_stats" are exactly the names like "HP", "DEF", "Flat HP", "ACC", etc.
+    # And that the columns for them are "Base HP", "Gemmed HP", etc.
+    # We'll check if either Base or Gemmed is > 0.
+
+    def count_substats(row, sub_stats):
+        count = 0
+        for stat in sub_stats:
+            base_col = f"Base {stat}"
+            gemmed_col = f"Gemmed {stat}"
+            base_val = row.get(base_col, 0) or 0
+            gem_val = row.get(gemmed_col, 0) or 0
+            # If either is nonzero, we consider that sub-stat present
+            if base_val > 0 or gem_val > 0:
+                count += 1
+        return count
+
+    df["num_substats"] = df.apply(lambda r: count_substats(r, sub_stats), axis=1)
+    df = df[df["num_substats"] >= min_sub_stats]
+
+    return df
+
+def grade_runes_sub_stats(runes_df,
+                          max_value=[],
+                          high_value=[],
+                          some_value=[],
+                          no_value=[],
+                          negative_value=[]) -> pd.DataFrame:
+    """
+    Grades each rune's sub-stats by first counting how many 'rolls'
+    it has in each stat. The function then applies a scoring scheme
+    based on which of the five categories (max_value, high_value,
+    some_value, no_value, negative_value) the stat is in.
+
+    Returns a copy of the passed DataFrame with a 'grade_score'
+    column, summing each rune's sub-stat scores.
+    """
+    import math
+    
+    df = runes_df.copy()
+
+    # Collect all relevant sub-stats into one list:
+    all_stats = set(max_value + high_value + some_value + no_value + negative_value)
+
+    def substat_rolls(row, stat):
+        base_col   = f"Base {stat}"
+        gemmed_col = f"Gemmed {stat}"
+
+        base_val = row.get(base_col, 0)
+        gem_val  = row.get(gemmed_col, 0)
+
+        # Convert any numeric NaNs to 0
+        if isinstance(base_val, float) and math.isnan(base_val):
+            base_val = 0
+        if isinstance(gem_val, float) and math.isnan(gem_val):
+            gem_val = 0
+
+        total_val = base_val + gem_val
+
+        # Convert total_val into "rolls"
+        divisor = stat_roles.get(stat, 0)
+        if divisor == 0:
+            return 0.0
+        return total_val / divisor
+
+    def get_sub_score(roll_count, stat):
+        # The weighting logic
+        if stat in max_value:
+            return roll_count * 2.0
+        elif stat in high_value:
+            return min(roll_count, 2) * 1.5
+        elif stat in some_value:
+            return min(roll_count, 1) * 1.0
+        elif stat in no_value:
+            return 0.0
+        elif stat in negative_value:
+            return -1.0 * roll_count
+        return 0.0
+
+    def calc_rune_score(row):
+        total_score = 0.0
+        for stat in all_stats:
+            rc = substat_rolls(row, stat)
+            total_score += get_sub_score(rc, stat)
+        return round(total_score, 2)
+
+    df["grade_score"] = df.apply(calc_rune_score, axis=1)
+
+    # Now reorder columns so that 'grade_score' is right after 'main_stat_type'.
+    # We'll do this only if both columns actually exist in the DataFrame.
+    if "main_stat_type" in df.columns and "grade_score" in df.columns:
+        cols = df.columns.tolist()  # get full list of columns
+        # remove 'grade_score' from wherever it currently is
+        cols.remove("grade_score")
+        # find index of 'main_stat_type'
+        idx = cols.index("main_stat_type")
+        # insert 'grade_score' right after 'main_stat_type'
+        cols.insert(idx + 1, "grade_score")
+        df = df[cols]
+
+    return df
+

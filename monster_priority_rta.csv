@@ -1,14 +1,20 @@
-name,primary sets,off sets,slot 2s,slot 4s,slot 6s,spd,cr,acc,res,hp,atk,def,cd,subs high priority,subs normal priority
-Leah,SWIFT,"WILL,BLADE","ATK,SPD",CD,ATK,,100,,,,,,,SPD,"ATK,CD"
-Adriana,SWIFT,REVENGE,SPD,X,X,,,,,,,,,SPD,"HP,ACC"
-Masha,"VIOLENT,SWIFT","WILL,BLADE",SPD,"CD,CR","ATK,HP",,85,,,,,,,SPD,"HP,ATK"
-Chiwu,"SWIFT,DESPAIR","WILL,FOCUS",SPD,CD,ACC,,,100,,,,,,SPD,ACC
-Narsha,VAMPIRE,REVENGE,SPD,CR,"ATK,HP",,100,,,,,,,SPD,
-Eshir,SWIFT,UNKNOWN,SPD,HP,HP,,,,,,,,,SPD,"HP,ACC"
-Gina,DESPAIR,FOCUS,SPD,HP,ATK,,,100,,,,,,SPD,"HP,ACC"
-Heartmann,VIOLENT,,,CD,ATK,,85,,,,,,,,
-Federica,"WILL,NEMESIS,NEMESIS","WILL,NEMESIS,NEMESIS",,,,,100,,,,,,,,
-Diana,VIOLENT,WILL,"HP,SPD",CD,HP,,100,,,,,,,,
-Chandra,VIOLENT,WILL,SPD,"CD,HP",HP,,,,,,,,,SPD,HP
-Bolverk,"WILL,SHIELD,REVENGE","WILL,SHIELD,REVENGE","HP,SPD","HP,DEF","RES,HP,ACC,DEF",,,,,,,,,"RES,SPD,HP","ACC,DEF"
-Savannah,,,,,,,,,,,,,,,
+name,primary sets,off sets,slot 2s,slot 4s,slot 6s,spd,cr,acc,res,hp,atk,def,cd,max value subs,high value subs,nice to have subs,no value subs,negative value subs
+Chandra,VIOLENT,WILL,SPD,CD,HP,,,,,,,,,SPD,HP,"CD,Flat HP,ACC,DEF",CR,
+Dark Zenitsu,VIOLENT,WILL,,,,,100,,,,,,,,,,,
+Hartmann,VIOLENT,WILL,SPD,CD,ATK,,85,,,,,,,SPD,,"HP,ATK,CD,ACC,Flat Atk",,
+Wind Tanjiro,VIOLENT,WILL,SPD,CR,"HP,ATK",,100,,,,,,,SPD,,,,
+Masha,"VIOLENT,SWIFT","WILL,BLADE",SPD,"CD,CR","ATK,HP",,85,,,,,,,SPD,"HP,ATK","ACC,CD",,
+Ethna,SWIFT,"NEMESIS,WILL,BLADE,FOCUS",SPD,"CD,CR",ATK,,100,,,,,,,"CR,SPD",,,RES,
+Adriana,SWIFT,,SPD,,,,,,,,,,,SPD,,"HP,ACC",,
+Giselle,"VIOLENT,DESPAIR",WILL,SPD,"CR,CD",DEF,,,,,,,,,SPD,"CR,HP","DEF,ACC",,
+Byungchul,VIOLENT,WILL,SPD,"CD,HP",HP,,,,,,,,,SPD,HP,"CD,Flat HP,ACC",CR,
+Leah,SWIFT,"WILL,BLADE","ATK,SPD",CD,ATK,,100,,,,,,,SPD,ATK,"HP,DEF,CD",,
+Shi Hou,VAMPIRE,WILL,SPD,CD,"ATK,HP",,85,,,,,,,,,,,
+Chiwu,"SWIFT,DESPAIR","WILL,FOCUS",SPD,CD,ACC,,,100,,,,,,SPD,ACC,,,
+Narsha,VAMPIRE,REVENGE,SPD,CR,"ATK,HP",,100,,,,,,,SPD,,,,
+Eshir,SWIFT,UNKNOWN,SPD,HP,HP,,,,,,,,,SPD,"HP,ACC",,,
+Gina,DESPAIR,FOCUS,SPD,HP,ATK,,,100,,,,,,SPD,"HP,ACC",,,
+Federica,"WILL,NEMESIS,NEMESIS","WILL,NEMESIS,NEMESIS",,,,,100,,,,,,,,,,,
+Diana,VIOLENT,WILL,"HP,SPD",CD,HP,,100,,,,,,,,,,,
+Bolverk,"WILL,SHIELD,REVENGE","WILL,SHIELD,REVENGE","HP,SPD","HP,DEF","RES,HP,ACC,DEF",,,,,,,,,"RES,SPD,HP","ACC,DEF",,,
+Savannah,"VIOLENT,DESPAIR,SWIFT",WILL,SPD,"CD,CR,ATK","ATK,HP",,,,,,,,,SPD,,,,

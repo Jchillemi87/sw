@@ -91,3 +91,31 @@ with pd.ExcelWriter(output_dir_path+'/runes.xlsx') as writer:
 # get a count of our monsters and keep the top x number of runes for each slots, and list out the remaining "bad runes" by lowest to highest score
 # %%
 r.score_rune(runes_df.loc[61599286895])
+# %%
+
+importlib.reload(r)
+result_df = r.find_runes(runes_df
+             ,sets=['VIOLENT','WILL']
+             ,slot_2=['SPD']
+             ,slot_4=['CD']
+             ,slot_6=['HP']
+             ,sub_stats=['SPD','HP','DEF','CD','Flat HP','ACC']
+             )
+
+graded_df = r.grade_runes_sub_stats(result_df
+                          ,max_value=['SPD']
+                          ,high_value=['HP']
+                          ,some_value=['CD','Flat HP','ACC','DEF']
+                          ,no_value=['CR'])
+
+# Now graded_df has a 'grade_score' column that helps you pick the top runes.
+graded_df.sort_values(['slot_no','grade_score'], ascending=[True,False], inplace=True)
+graded_df.to_clipboard()
+# %%
+pd.set_option("display.max_columns", None)  # let Pandas show all columns
+pd.set_option("display.width", 200)         # widen the console printout
+
+print(graded_df[["grade_score"]].head(10))
+
+
+# %%

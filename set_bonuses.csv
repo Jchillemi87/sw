@@ -1,0 +1,14 @@
+﻿Set,Pieces,Stat,Amount
+Energy,2,HP,15
+Fatal,4,ATK,35
+Blade,2,CR,15
+Swift,4,SPD,25
+Focus,2,ACC,20
+Guard,2,DEF,15
+Endure,2,RES,20
+Rage,4,CD,40
+Fight,2,ATK,8
+Determination,2,DEF,8
+Enhance,2,HP,8
+Accuracy,2,ACC,10
+Tolerance,2,RES,10
