@@ -22,6 +22,7 @@ with open(json_path, encoding='utf-8') as json_data:
 
 my_monsters = m.load_my_monsters(data)
 runes_df = r.load_runes(data)
+r.check_hero_gem(runes_df)
 runes_df['Total Rolls'] = runes_df[['Rolls ACC','Rolls CD','Rolls CR','Rolls ATK','Rolls DEF','Rolls HP','Rolls RES','Rolls SPD']].sum(axis=1)
 reapp_targets = r.find_reapp_targets(runes_df)
 maxed_runes = r.all_gem_grind_combinations(runes_df)
@@ -104,6 +105,8 @@ trash_great_runes_columns = ['slot_no'
                        ,'main_stat_type'
                        ,'Max Slot Percentile'
                        ,'Min Slot Percentile'
+                       ,'Gemmed_Stat_Name'
+                       ,'Max Hero Gem'
                        ,'Innate Stat'
                        ,'Innate Stat Value'
                        ,'Base SPD'
@@ -133,14 +136,22 @@ trash_great_runes_columns = ['slot_no'
 trash_runes_columns = trash_great_runes_columns.copy()
 trash_runes_columns.remove('Min Slot Percentile')
 trash_runes_columns.remove('Min Set Percentile')
+trash_runes_columns.remove('Gemmed_Stat_Name')
+trash_runes_columns.remove('Max Hero Gem')
 trash_runes_df = runes_df[trash_runes_columns]
 trash_runes_df = trash_runes_df.sort_values(['slot_no','Max Slot Percentile'])
 
-great_runes_columns = trash_great_runes_columns.copy()
-great_runes_columns.remove('Max Slot Percentile')
-great_runes_columns.remove('Max Set Percentile')
-great_runes_df = runes_df[great_runes_columns]
-great_runes_df = great_runes_df.sort_values(['slot_no','Min Slot Percentile'],ascending=[True,False])
+gem_targets_columns = trash_great_runes_columns.copy()
+gem_targets_columns.remove('Max Slot Percentile')
+gem_targets_columns.remove('Max Set Percentile')
+
+gem_targets_df = runes_df[gem_targets_columns]
+gem_targets_df = gem_targets_df[gem_targets_df['Max Hero Gem'] != True]
+gem_targets_df = gem_targets_df.drop(columns=['Max Hero Gem'])
+
+gem_targets_df.loc[gem_targets_df['Min Slot Percentile'] < gem_targets_df['Slot SPD Percentile'],'Min Slot Percentile'] = gem_targets_df[['Slot SPD Percentile','Min Slot Percentile']].max(axis=1, skipna=True)
+
+gem_targets_df = gem_targets_df.sort_values(['set_id','Min Slot Percentile','slot_no'],ascending=[True,False,True])
 
 # %% export runes_df,monsters_prepared,maxed_runes,best_monsters_for_runes,best_runes_for_monsters to excel
 output_dir_path = os.path.dirname(os.path.abspath(__file__))
@@ -151,7 +162,7 @@ with pd.ExcelWriter(output_dir_path+'/runes.xlsx') as writer:
     maxed_runes.to_excel(writer,sheet_name='maxed_runes',index=False)
     reapp_targets.to_excel(writer,sheet_name='reapps',index=False)
     trash_runes_df.to_excel(writer,sheet_name='trash_runes',index=True)
-    great_runes_df.to_excel(writer,sheet_name='great_runes',index=True)
+    gem_targets_df.to_excel(writer,sheet_name='gem_targets',index=True)
 
 # %%
 # HIGH PRIORITY GLITCH: A rune's stat maybe recommended to be gemmed out if it's current value is equal to or lower than the max gemmed value + maxed grind value

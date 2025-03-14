@@ -98,6 +98,8 @@ stat_dict = {
     ,12:'ACC'
 }
 
+gem_max_rolls = gems_and_grinds.loc[(gems_and_grinds['type']=='gem') & (gems_and_grinds['grade']==GRADE_SETTING)].drop(columns=['type','grade'])
+
 def load_runes(data):
     runes = pd.DataFrame.from_dict(data['runes'])
     equipt_runes = pd.json_normalize(data['unit_list'],record_path=['runes'])
@@ -238,7 +240,6 @@ def get_new_stats(df):
 
 def all_gem_grind_combinations(runes_df):
     runes_with_all_gems = []
-    gem_max_rolls = gems_and_grinds.loc[(gems_and_grinds['type']=='gem') & (gems_and_grinds['grade']==GRADE_SETTING)].drop(columns=['type','grade'])
     
     #fill na from 'Base ' + stat_dict.values() with 0
     runes_df[['Base '+stat for stat in stat_dict.values()]] = runes_df[['Base '+stat for stat in stat_dict.values()]].fillna(0)
@@ -651,3 +652,12 @@ def find_percentiles(rune_df: pd.DataFrame,col: str) -> pd.DataFrame:
     df['Set Percentile'] = rune_df.groupby(['slot_no','main_stat_type','set_id'])[col].rank(pct=True)
     
     return df
+
+def check_hero_gem(rune_df: pd.DataFrame) -> pd.DataFrame:
+    no_gem_mask = rune_df[rune_df['Gemmed_Stat_Name'].isna()]
+    rune_df.loc[no_gem_mask.index,'Max Hero Gem'] = False
+    for stat in stat_dict.values():
+        gemmed_stat_mask = rune_df[(rune_df['Gemmed_Stat_Name'] == stat) & (rune_df['Base '+stat] >= gem_max_rolls[stat].values[0])]
+        rune_df.loc[gemmed_stat_mask.index,'Max Hero Gem'] = True
+
+# %%
