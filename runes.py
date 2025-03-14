@@ -645,21 +645,9 @@ def grade_runes_sub_stats(runes_df,
 
 def find_percentiles(rune_df: pd.DataFrame,col: str) -> pd.DataFrame:
     col_list = ['slot_no','set_id','main_stat_type',col]
+    df = rune_df[col_list].copy()
+
+    df['Slot Percentile'] = rune_df.groupby(['slot_no','main_stat_type'])[col].rank(pct=True)
+    df['Set Percentile'] = rune_df.groupby(['slot_no','main_stat_type','set_id'])[col].rank(pct=True)
     
-    slot_percentile_list = []
-    set_percentile_list = []
-
-    for slot in range(1,7):
-        slot_df = rune_df[rune_df['slot_no'] == slot][col_list].copy()
-
-        for main_stat in slot_df['main_stat_type'].drop_duplicates():
-            slot_df['Slot Percentile'] = slot_df[slot_df['main_stat_type'] == main_stat][col].rank(pct=True)
-            slot_percentile_list.append(slot_df)
-
-            for set_id in slot_df[slot_df['main_stat_type'] == main_stat]['set_id']:
-                slot_df['Set Percentile'] = slot_df[(slot_df['main_stat_type'] == main_stat) & (slot_df['set_id'] == set_id)][col].rank(pct=True)
-                set_percentile_list.append(slot_df)
-    
-    slot_percentile_df = pd.concat(slot_percentile_list)
-    set_percentile_df = pd.concat(set_percentile_list)
-    return slot_percentile_df,set_percentile_df
+    return df
