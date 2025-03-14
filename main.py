@@ -25,6 +25,9 @@ runes_df = r.load_runes(data)
 runes_df['Total Rolls'] = runes_df[['Rolls ACC','Rolls CD','Rolls CR','Rolls ATK','Rolls DEF','Rolls HP','Rolls RES','Rolls SPD']].sum(axis=1)
 reapp_targets = r.find_reapp_targets(runes_df)
 maxed_runes = r.all_gem_grind_combinations(runes_df)
+
+maxed_runes = r.get_rolls(maxed_runes)
+
 my_monsters['name'] = my_monsters['name'].str.title()
 
 # %% find_best_monsters_for_all_runes
@@ -69,6 +72,76 @@ runes_df['Total Rolls'] = runes_df['Total Rolls'] + runes_df['Gemmed'].astype(in
 
 runes_df = runes_df.drop(columns=r.stat_list)
 
+# find rolls percentile
+maxed_runes_percentile = r.find_percentiles(maxed_runes.set_index('rune_id'),'New Total Rolls')
+
+runes_df['Slot Rolls Percentile'] = maxed_runes_percentile.groupby(maxed_runes_percentile.index)['Slot Percentile'].max()
+runes_df['Set Rolls Percentile'] = maxed_runes_percentile.groupby(maxed_runes_percentile.index)['Set Percentile'].max()
+
+# find spd percentile
+runes_spd_df = runes_df[runes_df['Base SPD']!=0].copy() # Only look at runes with SPD
+runes_spd_percentile = r.find_percentiles(runes_spd_df,'Base SPD')
+runes_spd_percentile = runes_spd_percentile.rename(columns={'Slot Percentile':'Slot SPD Percentile'
+                                                            ,'Set Percentile':'Set SPD Percentile'})
+
+runes_df = runes_df.join(runes_spd_percentile[['Slot SPD Percentile','Set SPD Percentile']])
+
+# find score percentile
+runes_score_percentile = r.find_percentiles(runes_df,'Score')
+runes_score_percentile = runes_score_percentile.rename(columns={'Slot Percentile':'Slot Score Percentile'
+                                                            ,'Set Percentile':'Set Score Percentile'})
+
+runes_df = runes_df.join(runes_score_percentile[['Slot Score Percentile','Set Score Percentile']])
+
+runes_df['Max Slot Percentile'] = runes_df[['Slot Score Percentile','Slot Rolls Percentile','Slot SPD Percentile']].max(axis=1)
+runes_df['Max Set Percentile'] = runes_df[['Set Score Percentile','Set Rolls Percentile','Set SPD Percentile']].max(axis=1)
+
+runes_df['Min Slot Percentile'] = runes_df[['Slot Score Percentile','Slot Rolls Percentile','Slot SPD Percentile']].min(axis=1)
+runes_df['Min Set Percentile'] = runes_df[['Set Score Percentile','Set Rolls Percentile','Set SPD Percentile']].min(axis=1)
+
+trash_great_runes_columns = ['slot_no'
+                       ,'set_id'
+                       ,'main_stat_type'
+                       ,'Max Slot Percentile'
+                       ,'Min Slot Percentile'
+                       ,'Innate Stat'
+                       ,'Innate Stat Value'
+                       ,'Base SPD'
+                       ,'Base CR'
+                       ,'Base ACC'
+                       ,'Base HP'
+                       ,'Base ATK'
+                       ,'Base DEF'
+                       ,'Base CD'
+                       ,'Base RES'
+                       ,'Base Flat HP'
+                       ,'Base Flat Atk'
+                       ,'Base Flat Def'
+                       ,'Max Set Percentile'
+                       ,'Min Set Percentile'
+                       ,'Slot Score Percentile'
+                       ,'Set Score Percentile'
+                       ,'Slot Rolls Percentile'
+                       ,'Set Rolls Percentile'
+                       ,'Slot SPD Percentile'
+                       ,'Set SPD Percentile'
+                       ,'Total Rolls'
+                       ,'Score'
+                       ,'grade'
+                       ,'ancient']
+
+trash_runes_columns = trash_great_runes_columns.copy()
+trash_runes_columns.remove('Min Slot Percentile')
+trash_runes_columns.remove('Min Set Percentile')
+trash_runes_df = runes_df[trash_runes_columns]
+trash_runes_df = trash_runes_df.sort_values(['slot_no','Max Slot Percentile'])
+
+great_runes_columns = trash_great_runes_columns.copy()
+great_runes_columns.remove('Max Slot Percentile')
+great_runes_columns.remove('Max Set Percentile')
+great_runes_df = runes_df[great_runes_columns]
+great_runes_df = great_runes_df.sort_values(['slot_no','Min Slot Percentile'],ascending=[True,False])
+
 # %% export runes_df,monsters_prepared,maxed_runes,best_monsters_for_runes,best_runes_for_monsters to excel
 output_dir_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -77,6 +150,8 @@ with pd.ExcelWriter(output_dir_path+'/runes.xlsx') as writer:
     monsters_prepared.to_excel(writer,sheet_name='monsters_prepared',index=False)
     maxed_runes.to_excel(writer,sheet_name='maxed_runes',index=False)
     reapp_targets.to_excel(writer,sheet_name='reapps',index=False)
+    trash_runes_df.to_excel(writer,sheet_name='trash_runes',index=True)
+    great_runes_df.to_excel(writer,sheet_name='great_runes',index=True)
 
 # %%
 # HIGH PRIORITY GLITCH: A rune's stat maybe recommended to be gemmed out if it's current value is equal to or lower than the max gemmed value + maxed grind value
